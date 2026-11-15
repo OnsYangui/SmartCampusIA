@@ -1,0 +1,47 @@
+# AI assistant files: local only, never committed
+CLAUDE.md
+.claude/
+AGENTS.md
+
+# Secrets & local env (keep the *.example templates)
+.env
+.env.*
+!.env.example
+*.pem
+
+# Build and coverage outputs
+build/
+dist/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Node / Next.js (see also apps/frontend/.gitignore)
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Editors & OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary local files
+tmp/
+
+# Python packaging
+*.egg-info/

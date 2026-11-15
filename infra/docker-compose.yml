@@ -1,0 +1,64 @@
+# Local development services. The apps run natively (uv / npm); only shared infrastructure runs here.
+# Ports are published on the loopback only (127.0.0.1 and ::1 for "localhost"), never on the network.
+name: smartcampus
+
+services:
+  db:
+    # PostgreSQL 16 + pgvector (SA-4). Roles, test database and extension: postgres/init (SA-16).
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Copy infra/.env.example to infra/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Copy infra/.env.example to infra/.env}
+      POSTGRES_DB: ${POSTGRES_DB:?Copy infra/.env.example to infra/.env}
+      # Roles created by postgres/init/10-roles.sh (SA-16)
+      SMARTCAMPUS_OWNER_PASSWORD: ${SMARTCAMPUS_OWNER_PASSWORD:?Set in infra/.env}
+      SMARTCAMPUS_APP_PASSWORD: ${SMARTCAMPUS_APP_PASSWORD:?Set in infra/.env}
+      SMARTCAMPUS_READONLY_PASSWORD: ${SMARTCAMPUS_READONLY_PASSWORD:?Set in infra/.env}
+    ports:
+      # 5433 on the host avoids clashing with a locally installed PostgreSQL on 5432
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+      - "[::1]:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mail:
+    # Mailpit: catches every e-mail sent in dev (SMTP 1025, web UI http://localhost:8025)
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SMTP_PORT:-1025}:1025"
+      - "[::1]:${SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+      - "[::1]:${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  llm:
+    # Ollama (OpenAI-compatible API on :11434). Pull the model once:
+    #   docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3:4b
+    image: ollama/ollama:0.12.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+      - "[::1]:${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  ollama:
