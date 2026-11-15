@@ -20,7 +20,6 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     environment: Literal["development", "staging", "production"] = "development"
     api_v1_prefix: str = "/api/v1"
-    # Comma-separated list in the environment, e.g. "http://localhost:3000,https://smartcampus.tn"
     cors_origins: str = "http://localhost:3000"
     database_url: str
 
