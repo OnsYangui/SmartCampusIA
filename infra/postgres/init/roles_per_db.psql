@@ -1,0 +1,19 @@
+-- Grants in the current database (called by roles.psql for the app and test databases).
+-- pgvector is not a trusted extension: only a superuser can install it.
+CREATE EXTENSION IF NOT EXISTS vector;
+
+GRANT USAGE, CREATE ON SCHEMA public TO smartcampus_owner;
+GRANT USAGE ON SCHEMA public TO smartcampus_app, smartcampus_readonly;
+
+-- Everything smartcampus_owner creates through migrations becomes usable by the two other roles.
+ALTER DEFAULT PRIVILEGES FOR ROLE smartcampus_owner IN SCHEMA public
+    GRANT SELECT, INSERT, UPDATE ON TABLES TO smartcampus_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE smartcampus_owner IN SCHEMA public
+    REVOKE DELETE ON TABLES FROM smartcampus_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE smartcampus_owner IN SCHEMA public
+    GRANT USAGE, SELECT ON SEQUENCES TO smartcampus_app;
+ALTER DEFAULT PRIVILEGES FOR ROLE smartcampus_owner IN SCHEMA public
+    GRANT SELECT ON TABLES TO smartcampus_readonly;
+
+-- Databases created before SA-16: the Alembic table belonged to the superuser.
+ALTER TABLE IF EXISTS alembic_version OWNER TO smartcampus_owner;

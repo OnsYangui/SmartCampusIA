@@ -1,0 +1,19 @@
+-- SA-16: roles, test database and extension. Run as a superuser; replayable.
+-- psql variables: owner_password, app_password, readonly_password, app_db.
+\set ON_ERROR_STOP on
+
+SELECT 'CREATE ROLE smartcampus_owner LOGIN' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'smartcampus_owner') \gexec
+SELECT 'CREATE ROLE smartcampus_app LOGIN' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'smartcampus_app') \gexec
+SELECT 'CREATE ROLE smartcampus_readonly LOGIN' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'smartcampus_readonly') \gexec
+ALTER ROLE smartcampus_owner PASSWORD :'owner_password';
+ALTER ROLE smartcampus_app PASSWORD :'app_password';
+ALTER ROLE smartcampus_readonly PASSWORD :'readonly_password';
+
+SELECT format('CREATE DATABASE %I OWNER smartcampus_owner', :'app_db' || '_test')
+ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = :'app_db' || '_test') \gexec
+
+\connect :app_db
+\ir roles_per_db.psql
+\set test_db :app_db '_test'
+\connect :test_db
+\ir roles_per_db.psql
