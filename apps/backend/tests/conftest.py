@@ -1,14 +1,18 @@
 import os
+import uuid
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import Connection
+from fastapi.testclient import TestClient
+from sqlalchemy import Connection, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.orm import Session
 
 from app.core.config import MigrationSettings, Settings, get_migration_settings, get_settings
+from tests.factories import insert, new_program
 
 
 def _test_url(url: str) -> str:
@@ -47,3 +51,52 @@ def conn() -> Iterator[Connection]:
         transaction = connection.begin()
         yield connection
         transaction.rollback()
+
+
+@pytest.fixture
+def api(conn: Connection) -> Iterator[TestClient]:
+    """API client whose requests run inside the test's rolled-back transaction."""
+    from app.core.db import get_session
+    from app.main import app
+
+    session = Session(bind=conn, join_transaction_mode="create_savepoint")
+    app.dependency_overrides[get_session] = lambda: session
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.pop(get_session)
+        session.close()
+
+
+@pytest.fixture
+def catalog(conn: Connection) -> dict[str, uuid.UUID]:
+    """Two institutions, four active programs, one inactive program and one pathway."""
+    iit = insert(conn, "institutions", code="IIT", name="Institut International de Technologie")
+    isb = insert(conn, "institutions", code="ISB", name="ISB", website="https://isb.example")
+    ids = {"iit": iit, "isb": isb}
+    ids["prepa"] = new_program(
+        conn, iit, "IIT-PREPA", name="Cycle préparatoire intégré", type="prepa", duration_years=2
+    )
+    ids["info"] = new_program(
+        conn,
+        iit,
+        "IIT-LIC-INFO",
+        name="Licence en informatique",
+        field="Informatique",
+        admission_bac_sections=["Mathématiques", "Informatique"],
+        min_bac_average=12,
+        prerequisites="Admission sur dossier",
+    )
+    ids["genie"] = new_program(
+        conn, iit, "IIT-ING-GL", name="Ingénieur en génie logiciel", type="ingenieur"
+    )
+    ids["gestion"] = new_program(conn, isb, "ISB-LIC-GEST", name="Licence en gestion")
+    ids["closed"] = new_program(conn, isb, "ISB-OLD", name="Ancienne formation", is_active=False)
+    conn.execute(
+        text(
+            "INSERT INTO program_pathways (from_program_id, to_program_id, conditions) "
+            "VALUES (:prepa, :genie, 'Validation des deux années')"
+        ),
+        ids,
+    )
+    return ids
