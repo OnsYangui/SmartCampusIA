@@ -11,10 +11,10 @@ The repository currently contains the **technical foundation**; the product feat
 
 | Implemented | Planned |
 | --- | --- |
-| FastAPI backend with health check (API and database) | Authentication and role-based access (SA-5) |
+| FastAPI backend: health check, catalogue API: public reads of published, valid data (programs, specialties, subjects, fees, admission requirements, eligibility) and management routes closed until authentication exists | Authentication and role-based access (SA-5) |
 | Next.js frontend: home page and placeholder pages (chat, candidate area, dashboard) | Conversation, orientation and pre-registration services |
 | Same-origin proxy from the frontend to the API | LangGraph agents with human validation |
-| PostgreSQL + pgvector: 24-table data model, least-privilege roles, migrations | RAG over official IIT/ISB documents |
+| PostgreSQL + pgvector: 27-table data model, least-privilege roles, migrations | RAG over official IIT/ISB documents |
 | Replayable demonstration data | Speech-to-text, LoRA language adaptation |
 | Local services: PostgreSQL, Mailpit, Ollama | Production deployment |
 | Tests, linters, CI and a local verification script | |
