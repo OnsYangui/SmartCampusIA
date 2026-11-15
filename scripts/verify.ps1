@@ -78,8 +78,8 @@ $PostgresDatabase = (& docker @ComposeArgs exec -T db printenv POSTGRES_DB | Out
 $TestDatabase = $PostgresDatabase + "_test"
 $Revision = (& docker @ComposeArgs exec -T db psql -U $PostgresUser -d $TestDatabase `
     -tAc "SELECT version_num FROM alembic_version" | Out-String).Trim()
-if ($LASTEXITCODE -ne 0 -or $Revision -ne "0003") {
-    throw "Expected Alembic revision 0003 in the test database, got '$Revision'"
+if ($LASTEXITCODE -ne 0 -or $Revision -ne "0007") {
+    throw "Expected Alembic revision 0007 in the test database, got '$Revision'"
 }
 
 $PermissionSql = "SELECT has_schema_privilege('smartcampus_owner', 'public', 'CREATE')" +

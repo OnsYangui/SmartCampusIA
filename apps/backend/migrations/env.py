@@ -7,7 +7,6 @@ from app.core.config import get_migration_settings
 from app.models import Base
 
 config = context.config
-# Migrations run as smartcampus_owner; an explicit URL (e.g. from the tests) takes precedence.
 if not config.get_main_option("sqlalchemy.url"):
     config.set_main_option("sqlalchemy.url", get_migration_settings().migration_database_url)
 

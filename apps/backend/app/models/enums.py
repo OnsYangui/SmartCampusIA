@@ -10,6 +10,8 @@ def _enum(name: str, *values: str) -> Enum:
 # SA-12
 program_type = _enum("program_type", "licence", "prepa", "ingenieur", "autre")
 campaign_status = _enum("campaign_status", "draft", "open", "closed")
+# SA-21: only published, currently valid fees and admission conditions reach candidates.
+publication_status = _enum("publication_status", "draft", "published", "archived")
 
 # SA-13 — states keep the SA-3 names
 user_role = _enum(
@@ -51,6 +53,7 @@ sync_status = _enum("sync_status", "pending", "running", "succeeded", "failed")
 ALL_ENUMS = [
     program_type,
     campaign_status,
+    publication_status,
     user_role,
     candidate_status,
     application_status,

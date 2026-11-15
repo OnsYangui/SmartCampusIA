@@ -30,17 +30,20 @@ from app.models import (
     MessageTemplate,
     Profile,
     Program,
+    ProgramFee,
     ProgramPathway,
+    ProgramSpecialty,
     Quiz,
     QuizQuestion,
     Recommendation,
     StateTransition,
+    Subject,
     User,
 )
 
 NAMESPACE = uuid.UUID("5c1e5a4e-0f6b-4c2a-9a51-2e1d0b7a6f10")
 
-# Not a valid Argon2 hash, so no password can ever match: demo accounts cannot log in until SA-5
+# Not a valid Argon2 hash, so no password can ever match: demo accounts cannot log in until SA-28
 # provides a demo password from the environment. The previous hash was published and is revoked.
 DEMO_PASSWORD_HASH = "!disabled:demo-login-not-configured"
 CONSENT_TEXT_VERSION = "2026-1"
@@ -94,22 +97,189 @@ PROGRAMS = [
     (
         "IIT",
         "IIT-ING-GL",
-        "Ingénieur en génie logiciel",
+        "Ingénieur en génie informatique",
         "ingenieur",
-        "Génie logiciel",
+        "Génie informatique",
         3,
         "DÉMO FICTIVE — Cycle préparatoire ou diplôme équivalent ; admission sur dossier.",
     ),
     (
         "ISB",
         "ISB-LIC-GEST",
-        "Licence en gestion",
+        "Licence nationale en gestion",
         "licence",
         "Gestion",
         3,
         "DÉMO FICTIVE — Baccalauréat ou diplôme équivalent ; admission sur dossier.",
     ),
 ]
+
+
+# Official admission conditions, checked on the sources below (SA-21). IIT publishes its fees as
+# indicative and without academic year, and ISB publishes none, so no official fee is recorded.
+IIT_ADMISSION_CRITERIA = "https://iit.tn/wp-content/uploads/2026/10/Criteres_d_admission.pdf"
+OFFICIAL_ADMISSION = {
+    "IIT-PREPA": {
+        "admission_bac_sections": [
+            "Mathématiques",
+            "Sciences expérimentales",
+            "Sciences de l'informatique",
+            "Sciences techniques",
+        ],
+        "prerequisites": "Baccalauréat scientifique : mathématiques, sciences expérimentales, "
+        "informatique ou technique.",
+        "admission_source_url": "https://iit.tn/filieres-ingenieur/cycle-preparatoire/",
+    },
+    "IIT-LIC-INFO": {
+        "admission_bac_sections": [
+            "Mathématiques",
+            "Sciences expérimentales",
+            "Sciences de l'informatique",
+            "Économie et gestion",
+            "Sciences techniques",
+        ],
+        "prerequisites": "Baccalauréat : mathématiques, sciences, informatique, économie et "
+        "gestion ou technique (Licence en informatique, Génie logiciel et systèmes intelligents).",
+        "admission_source_url": "https://iit.tn/genie-logiciel-systemes-intelligents/",
+    },
+    "IIT-ING-GL": {
+        "admission_bac_sections": None,
+        "prerequisites": "Critères d'admission IIT DC-SC-17 (rév. 00 du 17/06/2025), Génie "
+        "informatique : diplôme du cycle préparatoire (MP, PC ou PT), ou licence dans l'une des "
+        "spécialités suivantes : sciences de l'information, ingénierie des systèmes "
+        "d'information, technologies de l'information, automatisation et informatique "
+        "industrielle, systèmes automatisés et réseaux industriels, ingénierie de l'information, "
+        "informatique de gestion, mathématiques, mathématiques appliquées, sciences et "
+        "technologies de l'information et de la communication, électronique et électrotechnique, "
+        "informatique de précision et appareils mobiles, informatique et multimédia, ingénierie "
+        "logicielle et systèmes d'information, ingénierie des réseaux et des systèmes, systèmes "
+        "mobiles et Internet des objets, développement des systèmes d'information, systèmes "
+        "portables et mobiles, réseaux et services informatiques, multimédia et développement "
+        "web, intelligence d'affaires, services électroniques dans le monde des affaires, "
+        "systèmes d'information dans le monde des affaires, mathématiques et informatique.",
+        "admission_source_url": IIT_ADMISSION_CRITERIA,
+    },
+    "ISB-LIC-GEST": {
+        "admission_bac_sections": None,
+        "prerequisites": "Accessible aux titulaires du baccalauréat.",
+        "admission_source_url": "https://isb.tn/lng/",
+    },
+}
+# Names used before the official program pages were checked.
+PROVISIONAL_NAMES = {
+    "IIT-ING-GL": (
+        "Ingénieur en génie logiciel",
+        "Ingénieur en génie informatique, parcours génie logiciel et informatique décisionnelle",
+    ),
+    "ISB-LIC-GEST": ("Licence en gestion",),
+}
+OFFICIAL_ADMISSION_CHECKED_ON = date(2026, 11, 14)
+
+# Tracks published on iit.tn/filieres-ingenieur/genie-informatique-2/ and isb.tn/lng/.
+OFFICIAL_SPECIALTIES = {
+    "IIT-ING-GL": [
+        (
+            "GLID",
+            "Génie logiciel et informatique décisionnelle",
+            "Conception et développement de logiciels, architecture logicielle, gestion des "
+            "données, informatique décisionnelle et systèmes d'aide à la décision.",
+        ),
+        (
+            "ARSI",
+            "Administration réseau et sécurité informatique",
+            "Réseaux informatiques, administration des systèmes, infrastructures Cloud, "
+            "cybersécurité et protection des systèmes d'information.",
+        ),
+        (
+            "SDIA",
+            "Science des données et intelligence artificielle",
+            "Analyse des données, apprentissage automatique, apprentissage profond et "
+            "développement de solutions intelligentes.",
+        ),
+    ],
+    "ISB-LIC-GEST": [
+        ("COMPTA", "Comptabilité", "Dès la deuxième année."),
+        ("FIN", "Finance", "En troisième année."),
+        ("MKT", "Marketing", "En troisième année."),
+        ("MGT", "Management", "En troisième année."),
+        ("GRH", "Gestion des ressources humaines", "En troisième année."),
+    ],
+}
+# First-year common core of isb.tn/lng/; the page does not say reliably which semester.
+ISB_GESTION_FIRST_YEAR = [
+    "Principes de Gestion 1",
+    "Comptabilité Financière I",
+    "Microéconomie",
+    "Mathématique 1",
+    "Introduction au Droit",
+    "Mathématiques Financières",
+    "Etudier à l'université",
+    "Français Professionnel 1",
+    "Digital Skills 1",
+    "Principe de Gestion 2",
+    "Comptabilité Financière II",
+    "Mathématique 2",
+    "Statistique Descriptive et Calculs de Probabilité",
+    "Macroéconomie",
+    "Droit des Sociétés Commerciales",
+    "Anglais 1",
+    "Français Professionnel 2",
+    "Apprendre à apprendre",
+]
+
+
+def record_official_admission(conn: Connection) -> None:
+    """Replaces provisional names and conditions; a source recorded since is never overwritten."""
+    programs = Program.__table__
+    for _, code, name, _, field, _, _ in PROGRAMS:
+        if code in PROVISIONAL_NAMES:
+            conn.execute(
+                update(programs)
+                .where(programs.c.id == uid("program", code))
+                .where(programs.c.name.in_(PROVISIONAL_NAMES[code]))
+                .values(name=name, field=field)
+            )
+    for code, conditions in OFFICIAL_ADMISSION.items():
+        conn.execute(
+            update(programs)
+            .where(programs.c.id == uid("program", code))
+            .where(programs.c.admission_source_url.is_(None))
+            .values(
+                **conditions,
+                admission_verified_on=OFFICIAL_ADMISSION_CHECKED_ON,
+                admission_is_demo=False,
+                admission_status="published",
+                admission_valid_from=OFFICIAL_ADMISSION_CHECKED_ON,
+            )
+        )
+    insert_if_missing(
+        conn,
+        ProgramSpecialty,
+        *(
+            {
+                "id": uid("specialty", code, specialty),
+                "program_id": uid("program", code),
+                "code": specialty,
+                "name": name,
+                "description": description,
+            }
+            for code, specialties in OFFICIAL_SPECIALTIES.items()
+            for specialty, name, description in specialties
+        ),
+    )
+    insert_if_missing(
+        conn,
+        Subject,
+        *(
+            {
+                "id": uid("subject", "ISB-LIC-GEST", name),
+                "program_id": uid("program", "ISB-LIC-GEST"),
+                "name": name,
+                "study_year": 1,
+            }
+            for name in ISB_GESTION_FIRST_YEAR
+        ),
+    )
 
 
 def seed_reference(conn: Connection) -> None:
@@ -153,6 +323,7 @@ def seed_reference(conn: Connection) -> None:
                 "field": field,
                 "duration_years": years,
                 "prerequisites": prerequisites,
+                "admission_is_demo": True,
             }
             for inst, code, name, kind, field, years, prerequisites in PROGRAMS
         ),
@@ -164,6 +335,14 @@ def seed_reference(conn: Connection) -> None:
             .where(Program.__table__.c.prerequisites.is_(None))
             .values(prerequisites=prerequisites)
         )
+    conn.execute(
+        update(Program.__table__)
+        .where(Program.__table__.c.id.in_([uid("program", row[1]) for row in PROGRAMS]))
+        .where(Program.__table__.c.admission_source_url.is_(None))
+        .where(Program.__table__.c.prerequisites.startswith("DÉMO FICTIVE"))
+        .values(admission_is_demo=True)
+    )
+    record_official_admission(conn)
     insert_if_missing(
         conn,
         ProgramPathway,
@@ -176,6 +355,8 @@ def seed_reference(conn: Connection) -> None:
 
 
 # Demonstration data.
+# Fictional amounts in TND: official fees come only from verified documents (SA-21).
+DEMO_ANNUAL_FEES = {"prepa": 6500, "licence": 5800, "ingenieur": 7900}
 STAFF = [
     # role, email, institution
     ("academic_manager", "resp.academique.iit@example.com", "IIT"),
@@ -260,6 +441,21 @@ def seed_demo(conn: Connection) -> None:
         update(AdmissionCampaign.__table__)
         .where(AdmissionCampaign.__table__.c.id == campaign)
         .values(status="open")
+    )
+    insert_if_missing(
+        conn,
+        ProgramFee,
+        *(
+            {
+                "id": uid("fee", code, "2026-2027"),
+                "program_id": uid("program", code),
+                "academic_year": "2026-2027",
+                "label": "DÉMO FICTIVE — Frais de scolarité annuels",
+                "amount": DEMO_ANNUAL_FEES[kind],
+                "is_demo": True,
+            }
+            for _, code, _, kind, _, _, _ in PROGRAMS
+        ),
     )
 
     insert_if_missing(

@@ -11,6 +11,7 @@ seed_reference = seed.seed_reference
 TABLES = [
     "institutions",
     "programs",
+    "program_fees",
     "program_pathways",
     "admission_campaigns",
     "users",
@@ -99,7 +100,9 @@ def test_seed_is_replayable_and_covers_every_state(conn: Connection) -> None:
 def test_reference_seed_labels_fictional_admission_requirements(conn: Connection) -> None:
     seed_reference(conn)
 
-    requirements = conn.execute(text("SELECT prerequisites FROM programs ORDER BY code")).scalars()
+    requirements = conn.execute(
+        text("SELECT prerequisites FROM programs WHERE admission_source_url IS NULL")
+    ).scalars()
 
     assert all(value.startswith("DÉMO FICTIVE — ") for value in requirements)
 
