@@ -1,7 +1,15 @@
-"""SQLAlchemy models of SA-12, SA-13 and SA-14 (24 tables)."""
+"""SQLAlchemy models of SA-12 to SA-14, SA-20 and SA-21 (27 tables)."""
 
 from app.models.base import Base
-from app.models.catalog import AdmissionCampaign, Institution, Program, ProgramPathway
+from app.models.catalog import (
+    AdmissionCampaign,
+    Institution,
+    Program,
+    ProgramFee,
+    ProgramPathway,
+    ProgramSpecialty,
+    Subject,
+)
 from app.models.documents import Document, DocumentFragment, DocumentSync
 from app.models.people import (
     Application,
@@ -43,10 +51,13 @@ __all__ = [
     "Notification",
     "Profile",
     "Program",
+    "ProgramFee",
     "ProgramPathway",
+    "ProgramSpecialty",
     "Quiz",
     "QuizQuestion",
     "Recommendation",
     "StateTransition",
+    "Subject",
     "User",
 ]

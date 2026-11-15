@@ -12,6 +12,6 @@ def test_migrations_go_down_and_up_again(alembic_config: Config) -> None:
         assert inspect(engine).get_table_names() == ["alembic_version"]
 
         command.upgrade(alembic_config, "head")
-        assert len(inspect(engine).get_table_names()) == 25  # 24 tables + alembic_version
+        assert len(inspect(engine).get_table_names()) == 28  # 27 tables + alembic_version
     finally:
         engine.dispose()
