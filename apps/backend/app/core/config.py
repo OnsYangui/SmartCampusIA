@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:3000"
     database_url: str
-    
+
     # SA-25 / SA-26 : sessions visiteurs et mémoire temporaire de la conversation
     session_cookie_name: str = "sc_session"
     session_idle_ttl_minutes: int = 60 * 24  # expire après 24 h d'inactivité
