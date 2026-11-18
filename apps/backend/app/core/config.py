@@ -23,6 +23,14 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     database_url: str
 
+    # SA-25 / SA-26 : sessions visiteurs et mémoire temporaire de la conversation
+    session_cookie_name: str = "sc_session"
+    session_idle_ttl_minutes: int = 60 * 24  # expire après 24 h d'inactivité
+    session_max_lifetime_days: int = 7  # durée de vie maximale, même si le visiteur reste actif
+    session_max_messages: int = 30  # nombre maximal de messages d'un visiteur par session
+    message_max_chars: int = 2000  # taille maximale d'un message
+    memory_window_messages: int = 12  # nombre de messages récents donnés à l'agent
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
