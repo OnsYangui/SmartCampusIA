@@ -19,6 +19,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.engine import make_url
 
 from app.core.config import Settings, get_settings
+from app.core.passwords import hash_password
 from app.models import (
     AdmissionCampaign,
     Application,
@@ -43,8 +44,9 @@ from app.models import (
 
 NAMESPACE = uuid.UUID("5c1e5a4e-0f6b-4c2a-9a51-2e1d0b7a6f10")
 
-# Not a valid Argon2 hash, so no password can ever match: demo accounts cannot log in until SA-28
-# provides a demo password from the environment. The previous hash was published and is revoked.
+# Not a valid Argon2 hash, so no password can ever match: demo accounts cannot log in until a demo
+# password is set in DEMO_PASSWORD (SA-28, see `enable_demo_login`). The previous hash was
+# published and is revoked.
 DEMO_PASSWORD_HASH = "!disabled:demo-login-not-configured"
 CONSENT_TEXT_VERSION = "2026-1"
 T0 = datetime(2026, 6, 15, 9, 0, tzinfo=UTC)
@@ -678,6 +680,29 @@ def _seed_candidate(
     )
 
 
+def demo_user_ids() -> list[uuid.UUID]:
+    """Accounts created by `seed_demo`: the staff and the candidates who hold an application."""
+    staff = [uid("user", role) for role, _, _ in STAFF]
+    candidates = [
+        uid("user", key) for key, _, target in CANDIDATES if "PREINSCRIT" in states_of(target)
+    ]
+    return staff + candidates
+
+
+def enable_demo_login(conn: Connection, password: str) -> int:
+    """Give every demonstration account the same Argon2 password (development only).
+
+    Replayable: running it again with another password replaces the previous one.
+    """
+    table = User.__table__
+    result = conn.execute(
+        update(table)
+        .where(table.c.id.in_(demo_user_ids()))
+        .values(password_hash=hash_password(password))
+    )
+    return result.rowcount
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--reference-only", action="store_true")
@@ -695,6 +720,9 @@ def main() -> None:
         seed_reference(conn)
         if not args.reference_only:
             seed_demo(conn)
+            demo_password = get_settings().demo_password
+            if demo_password is not None:
+                enable_demo_login(conn, demo_password.get_secret_value())
     print("Données insérées (rejouable sans doublons).")
 
 

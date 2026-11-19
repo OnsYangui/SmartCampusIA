@@ -1,10 +1,14 @@
+import secrets
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
 
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
+
+MIN_JWT_SECRET_LENGTH = 32
 
 
 class Settings(BaseSettings):
@@ -30,6 +34,43 @@ class Settings(BaseSettings):
     session_max_messages: int = 30  # nombre maximal de messages d'un visiteur par session
     message_max_chars: int = 2000  # taille maximale d'un message
     memory_window_messages: int = 12  # nombre de messages récents donnés à l'agent
+
+    # Authentication (SA-28, SA-5): short-lived JWT in an HttpOnly cookie plus a refresh token.
+    # Mandatory outside development; in development a random per-process secret is used when
+    # the variable is missing (sessions then end whenever the API restarts).
+    jwt_secret_key: SecretStr | None = None
+    access_token_minutes: int = 15
+    refresh_token_days: int = 7
+    # None = automatic: Secure cookies everywhere except development (plain http://localhost).
+    cookie_secure: bool | None = None
+    # Development only: password given to the demonstration accounts by `python -m app.seed`.
+    demo_password: SecretStr | None = None
+
+    @model_validator(mode="after")
+    def _check_authentication(self) -> Self:
+        secret = self.jwt_secret_key.get_secret_value() if self.jwt_secret_key else ""
+        if secret.startswith("change_me"):
+            raise ValueError("JWT_SECRET_KEY still holds the .env.example placeholder")
+        if not secret:
+            if self.environment != "development":
+                raise ValueError("JWT_SECRET_KEY is required outside development")
+            self.jwt_secret_key = SecretStr(secrets.token_urlsafe(48))
+        elif len(secret) < MIN_JWT_SECRET_LENGTH:
+            raise ValueError(
+                f"JWT_SECRET_KEY must hold at least {MIN_JWT_SECRET_LENGTH} characters"
+            )
+        return self
+
+    @property
+    def jwt_secret(self) -> str:
+        assert self.jwt_secret_key is not None  # guaranteed by the validator
+        return self.jwt_secret_key.get_secret_value()
+
+    @property
+    def secure_cookies(self) -> bool:
+        if self.cookie_secure is not None:
+            return self.cookie_secure
+        return self.environment != "development"
 
     @property
     def cors_origin_list(self) -> list[str]:
