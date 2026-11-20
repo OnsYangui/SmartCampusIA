@@ -80,6 +80,15 @@ role in `infra/.env` and in the backend URLs. See [docs/development.md](docs/dev
 docker compose -f infra/docker-compose.yml up -d
 ```
 
+Pull the configured Qwen model once (the Ollama volume keeps it across restarts):
+
+```bash
+docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3:4b
+```
+
+The backend calls Ollama at `http://localhost:11434` by default using `qwen3:4b`. Override
+`OLLAMA_BASE_URL`, `OLLAMA_MODEL`, or `OLLAMA_TIMEOUT_SECONDS` in `apps/backend/.env` if needed.
+
 **3. Prepare the database and start the backend** in a terminal:
 
 ```bash
@@ -99,7 +108,8 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000>. <http://localhost:3000/api/v1/health> checks the full chain
+Open <http://localhost:3000> and choose Chat to try the Qwen-backed assistant. Its first reply may
+take longer while Ollama loads the model. <http://localhost:3000/api/v1/health> checks the full chain
 (frontend proxy, API and database).
 
 **Optional:** load demonstration data with `uv run python -m app.seed` (from `apps/backend`), and

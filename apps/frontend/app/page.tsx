@@ -70,7 +70,9 @@ export default function HomePage() {
             SmartCampus AI accompagne les futurs étudiants de la découverte des
             formations jusqu&apos;au rendez-vous d&apos;inscription.
           </p>
-          <Button disabled>Démarrer la conversation (bientôt)</Button>
+          <Button nativeButton={false} render={<Link href="/chat" />}>
+            Démarrer la conversation
+          </Button>
         </section>
 
         <section
