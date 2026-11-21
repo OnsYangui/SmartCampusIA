@@ -1,6 +1,7 @@
 """SA-36/37 — Ollama API and session memory, without the external model."""
 
 import asyncio
+from types import SimpleNamespace
 from typing import Any
 
 import httpx
@@ -53,6 +54,25 @@ def chat_route_module():
     from app.api.routes import chat
 
     return chat
+
+
+def mock_ollama(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    content: str | None = None,
+    error: Exception | None = None,
+) -> StubClient:
+    payload = {"message": {"content": content}} if content is not None else None
+    response = StubResponse(payload) if payload is not None else None
+    client = StubClient(response=response, error=error)
+    provider_http = SimpleNamespace(
+        AsyncClient=lambda **_: client,
+        Timeout=httpx.Timeout,
+        TimeoutException=httpx.TimeoutException,
+        HTTPError=httpx.HTTPError,
+    )
+    monkeypatch.setattr(chat_service, "httpx", provider_http)
+    return client
 
 
 def test_reply_sends_configured_ollama_request(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -201,6 +221,82 @@ def test_chat_api_sends_recent_session_context(api, monkeypatch: pytest.MonkeyPa
         ],
         None,
     )
+
+
+def test_chat_api_handles_an_ambiguous_question_in_french(
+    api, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client = mock_ollama(
+        monkeypatch,
+        content="À quel établissement et à quelle formation faites-vous référence ?",
+    )
+    conversation_id = api.post("/api/v1/sessions").json()["id"]
+
+    response = api.post(
+        "/api/v1/chat",
+        json={"conversation_id": conversation_id, "message": "C'est combien ?"},
+    )
+
+    assert response.status_code == 200
+    assert "À quel établissement" in response.json()["message"]
+    assert client.request is not None
+    assert client.request["json"]["messages"][-1] == {
+        "role": "user",
+        "content": "C'est combien ?",
+    }
+
+
+def test_chat_api_returns_uncertainty_for_unverified_administrative_facts(
+    api, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client = mock_ollama(
+        monkeypatch,
+        content=(
+            "Je ne peux pas vérifier la date officielle. Consultez le site de l'établissement "
+            "pour une information à jour."
+        ),
+    )
+    conversation_id = api.post("/api/v1/sessions").json()["id"]
+
+    response = api.post(
+        "/api/v1/chat",
+        json={
+            "conversation_id": conversation_id,
+            "message": "Quelle est la date limite officielle d'inscription ?",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Je ne peux pas vérifier" in response.json()["message"]
+    assert client.request is not None
+    system_prompt = client.request["json"]["messages"][0]["content"]
+    assert "Never present admissions rules" in system_prompt
+    assert "do not guess" in system_prompt
+
+
+@pytest.mark.parametrize(
+    ("provider_error", "status_code"),
+    [
+        (httpx.ConnectError("unavailable"), 503),
+        (httpx.ReadTimeout("slow"), 504),
+    ],
+)
+def test_chat_api_maps_ollama_connection_errors_and_timeouts(
+    api,
+    monkeypatch: pytest.MonkeyPatch,
+    provider_error: Exception,
+    status_code: int,
+) -> None:
+    mock_ollama(monkeypatch, error=provider_error)
+    conversation_id = api.post("/api/v1/sessions").json()["id"]
+
+    response = api.post(
+        "/api/v1/chat",
+        json={"conversation_id": conversation_id, "message": "Bonjour"},
+    )
+
+    assert response.status_code == status_code
+    assert response.json()["message"]
 
 
 def test_chat_api_rejects_another_visitors_conversation(
