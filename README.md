@@ -13,7 +13,7 @@ The repository currently contains the **technical foundation**; the product feat
 | --- | --- |
 | FastAPI backend: health check, catalogue API: public reads of published, valid data (programs, specialties, subjects, fees, admission requirements, eligibility) and management routes reserved to academic managers and administrators | Conversation, orientation and pre-registration services |
 | Authentication and role-based access (SA-28): login, JWT in HttpOnly cookies, refresh, logout, CSRF protection, five roles | LangGraph agents with human validation |
-| Next.js frontend: home page, login page for every actor, role-protected placeholder pages (candidate area, dashboard, interviews) and a public chat placeholder | RAG over official IIT/ISB documents |
+| Next.js frontend: home page, login page for every actor, role-protected pages and public Qwen-backed chat | RAG over official IIT/ISB documents |
 | Same-origin proxy from the frontend to the API | Speech-to-text, LoRA language adaptation |
 | PostgreSQL + pgvector: 27-table data model, least-privilege roles, migrations | Production deployment |
 | Replayable demonstration data | |
@@ -88,7 +88,8 @@ docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3:4b
 ```
 
 The backend calls Ollama at `http://localhost:11434` by default using `qwen3:4b`. Override
-`OLLAMA_BASE_URL`, `OLLAMA_MODEL`, or `OLLAMA_TIMEOUT_SECONDS` in `apps/backend/.env` if needed.
+`OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT_SECONDS`, or `OLLAMA_TEMPERATURE` in
+`apps/backend/.env` if needed.
 
 **3. Prepare the database and start the backend** in a terminal:
 
