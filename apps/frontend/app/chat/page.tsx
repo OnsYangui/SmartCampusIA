@@ -47,7 +47,7 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversation_id: activeConversationId, message }),
       })
-      if (!response.ok) throw new Error("L'assistant est indisponible. Vérifiez qu'Ollama est lancé et que qwen3:4b est téléchargé.")
+      if (!response.ok) throw new Error("L'assistant est indisponible. Vérifiez qu'Ollama est lancé et que qwen3.5:4b est téléchargé.")
       const result: { message: string } = await response.json()
       setMessages((current) => [...current, { role: "assistant", content: result.message }])
     } catch (cause) {

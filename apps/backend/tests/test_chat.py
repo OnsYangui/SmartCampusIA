@@ -79,9 +79,7 @@ def test_reply_sends_configured_ollama_request(monkeypatch: pytest.MonkeyPatch) 
     clients: list[StubClient] = []
 
     def create_client(**kwargs: Any) -> StubClient:
-        client = StubClient(
-            response=StubResponse({"message": {"content": "Bonjour !"}}), **kwargs
-        )
+        client = StubClient(response=StubResponse({"message": {"content": "Bonjour !"}}), **kwargs)
         clients.append(client)
         return client
 
@@ -90,7 +88,7 @@ def test_reply_sends_configured_ollama_request(monkeypatch: pytest.MonkeyPatch) 
         _env_file=None,
         database_url="postgresql+psycopg://app:secret@localhost/smartcampus",
         ollama_base_url="http://ollama.test:11434",
-        ollama_model="qwen3:4b",
+        ollama_model="qwen3.5:4b",
         ollama_timeout_seconds=45,
         ollama_temperature=0.2,
     )
@@ -111,7 +109,7 @@ def test_reply_sends_configured_ollama_request(monkeypatch: pytest.MonkeyPatch) 
     assert client.request is not None
     assert client.request["path"] == "/api/chat"
     body = client.request["json"]
-    assert body["model"] == "qwen3:4b"
+    assert body["model"] == "qwen3.5:4b"
     assert body["stream"] is False
     assert body["options"]["temperature"] == 0.2
     assert "Never present admissions rules" in body["messages"][0]["content"]
@@ -179,7 +177,7 @@ def test_chat_api_returns_generated_answer(api, monkeypatch: pytest.MonkeyPatch)
     assert response.status_code == 200
     assert response.json() == {
         "message": "Bonjour, comment puis-je vous aider ?",
-        "model": "qwen3:4b",
+        "model": "qwen3.5:4b",
     }
 
 
