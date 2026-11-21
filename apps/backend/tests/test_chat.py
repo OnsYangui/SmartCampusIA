@@ -1,17 +1,12 @@
-"""SA-36 — API et communication Ollama, sans dépendance au modèle externe."""
+"""SA-36/37 — Ollama API and session memory, without the external model."""
 
 import asyncio
-from collections.abc import Callable
 from typing import Any
 
 import httpx
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
-from app.api.errors import register_error_handlers
-from app.api.routes import chat as chat_route
-from app.core.config import Settings, get_settings
+from app.core.config import Settings
 from app.schemas.chat import ChatTurn
 from app.services import chat as chat_service
 
@@ -54,6 +49,12 @@ class StubClient:
         return self.response
 
 
+def chat_route_module():
+    from app.api.routes import chat
+
+    return chat
+
+
 def test_reply_sends_configured_ollama_request(monkeypatch: pytest.MonkeyPatch) -> None:
     clients: list[StubClient] = []
 
@@ -91,6 +92,7 @@ def test_reply_sends_configured_ollama_request(monkeypatch: pytest.MonkeyPatch) 
     assert body["model"] == "qwen3.5:4b"
     assert body["stream"] is False
     assert body["options"]["temperature"] == 0.2
+    assert "Never present admissions rules" in body["messages"][0]["content"]
     assert [message["role"] for message in body["messages"]] == [
         "system",
         "user",
@@ -137,31 +139,99 @@ def test_reply_rejects_invalid_ollama_payloads(
         asyncio.run(chat_service.reply(settings, "Question", []))
 
 
-def api_client(monkeypatch: pytest.MonkeyPatch, reply: Callable[..., Any]) -> TestClient:
-    app = FastAPI()
-    register_error_handlers(app)
-    app.include_router(chat_route.router)
-    app.dependency_overrides[get_settings] = lambda: Settings(
-        _env_file=None,
-        database_url="postgresql+psycopg://app:secret@localhost/smartcampus",
-        ollama_model="qwen3.5:4b",
-    )
-    monkeypatch.setattr(chat_route, "reply", reply)
-    return TestClient(app)
+def test_chat_api_returns_generated_answer(api, monkeypatch: pytest.MonkeyPatch) -> None:
+    chat_route = chat_route_module()
 
-
-def test_chat_api_returns_generated_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     async def generated_answer(*_: Any) -> str:
         return "Bonjour, comment puis-je vous aider ?"
 
-    with api_client(monkeypatch, generated_answer) as client:
-        response = client.post("/chat", json={"message": "Bonjour"})
+    monkeypatch.setattr(chat_route, "reply", generated_answer)
+    session = api.post("/api/v1/sessions")
+    conversation_id = session.json()["id"]
+    response = api.post(
+        "/api/v1/chat",
+        json={"conversation_id": conversation_id, "message": "Bonjour"},
+    )
 
+    assert session.status_code == 201
     assert response.status_code == 200
     assert response.json() == {
         "message": "Bonjour, comment puis-je vous aider ?",
         "model": "qwen3.5:4b",
     }
+
+
+def test_chat_api_sends_recent_session_context(api, monkeypatch: pytest.MonkeyPatch) -> None:
+    chat_route = chat_route_module()
+    received: list[tuple[str, list[ChatTurn], str | None]] = []
+
+    async def generated_answer(
+        _settings: Settings,
+        message: str,
+        history: list[ChatTurn],
+        summary: str | None,
+    ) -> str:
+        received.append((message, history, summary))
+        return (
+            "Première réponse"
+            if len(received) == 1
+            else "Je ne peux pas vérifier sa durée officielle. Consultez l'établissement."
+        )
+
+    monkeypatch.setattr(chat_route, "reply", generated_answer)
+    session = api.post("/api/v1/sessions")
+    conversation_id = session.json()["id"]
+
+    first = api.post(
+        "/api/v1/chat",
+        json={"conversation_id": conversation_id, "message": "Je cherche une licence."},
+    )
+    second = api.post(
+        "/api/v1/chat",
+        json={"conversation_id": conversation_id, "message": "Et sa durée ?"},
+    )
+
+    assert first.status_code == second.status_code == 200
+    assert received[0] == ("Je cherche une licence.", [], None)
+    assert received[1] == (
+        "Et sa durée ?",
+        [
+            ChatTurn(role="user", content="Je cherche une licence."),
+            ChatTurn(role="assistant", content="Première réponse"),
+        ],
+        None,
+    )
+
+
+def test_chat_api_rejects_another_visitors_conversation(
+    api, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chat_route = chat_route_module()
+    calls = 0
+
+    async def generated_answer(*_: Any) -> str:
+        nonlocal calls
+        calls += 1
+        return "Réponse"
+
+    monkeypatch.setattr(chat_route, "reply", generated_answer)
+    first_conversation = api.post("/api/v1/sessions").json()["id"]
+    assert (
+        api.post(
+            "/api/v1/chat",
+            json={"conversation_id": first_conversation, "message": "Question privée"},
+        ).status_code
+        == 200
+    )
+
+    api.post("/api/v1/sessions")  # replaces the browser's visitor cookie
+    response = api.post(
+        "/api/v1/chat",
+        json={"conversation_id": first_conversation, "message": "Autre question"},
+    )
+
+    assert response.status_code == 404
+    assert calls == 1
 
 
 @pytest.mark.parametrize(
@@ -173,13 +243,19 @@ def test_chat_api_returns_generated_answer(monkeypatch: pytest.MonkeyPatch) -> N
     ],
 )
 def test_chat_api_returns_provider_errors(
-    monkeypatch: pytest.MonkeyPatch, error: Exception, status_code: int
+    api, monkeypatch: pytest.MonkeyPatch, error: Exception, status_code: int
 ) -> None:
+    chat_route = chat_route_module()
+
     async def failed_answer(*_: Any) -> str:
         raise error
 
-    with api_client(monkeypatch, failed_answer) as client:
-        response = client.post("/chat", json={"message": "Question"})
+    monkeypatch.setattr(chat_route, "reply", failed_answer)
+    conversation_id = api.post("/api/v1/sessions").json()["id"]
+    response = api.post(
+        "/api/v1/chat",
+        json={"conversation_id": conversation_id, "message": "Question"},
+    )
 
     assert response.status_code == status_code
     assert response.json()["message"]

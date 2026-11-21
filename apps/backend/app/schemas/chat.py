@@ -1,10 +1,11 @@
 from typing import Annotated, Literal
+from uuid import UUID
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, StringConstraints
 
 ChatMessage = Annotated[
     str,
-    StringConstraints(strip_whitespace=True, min_length=1, max_length=4000),
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=2000),
 ]
 
 
@@ -14,8 +15,8 @@ class ChatTurn(BaseModel):
 
 
 class ChatRequest(BaseModel):
+    conversation_id: UUID
     message: ChatMessage
-    history: list[ChatTurn] = Field(default_factory=list, max_length=10)
 
 
 class ChatResponse(BaseModel):
