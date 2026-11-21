@@ -11,12 +11,13 @@ The repository currently contains the **technical foundation**; the product feat
 
 | Implemented | Planned |
 | --- | --- |
-| FastAPI backend: health check, catalogue API: public reads of published, valid data (programs, specialties, subjects, fees, admission requirements, eligibility) and management routes closed until authentication exists | Authentication and role-based access (SA-5) |
-| Next.js frontend: home page and placeholder pages (chat, candidate area, dashboard) | Conversation, orientation and pre-registration services |
-| Same-origin proxy from the frontend to the API | LangGraph agents with human validation |
-| PostgreSQL + pgvector: 27-table data model, least-privilege roles, migrations | RAG over official IIT/ISB documents |
-| Replayable demonstration data | Speech-to-text, LoRA language adaptation |
-| Local services: PostgreSQL, Mailpit, Ollama | Production deployment |
+| FastAPI backend: health check, catalogue API: public reads of published, valid data (programs, specialties, subjects, fees, admission requirements, eligibility) and management routes reserved to academic managers and administrators | Conversation, orientation and pre-registration services |
+| Authentication and role-based access (SA-28): login, JWT in HttpOnly cookies, refresh, logout, CSRF protection, five roles | LangGraph agents with human validation |
+| Next.js frontend: home page, login page for every actor, role-protected placeholder pages (candidate area, dashboard, interviews) and a public chat placeholder | RAG over official IIT/ISB documents |
+| Same-origin proxy from the frontend to the API | Speech-to-text, LoRA language adaptation |
+| PostgreSQL + pgvector: 27-table data model, least-privilege roles, migrations | Production deployment |
+| Replayable demonstration data | |
+| Local services: PostgreSQL, Mailpit, Ollama | |
 | Tests, linters, CI and a local verification script | |
 
 ## Tech stack
@@ -112,7 +113,10 @@ Open <http://localhost:3000> and choose Chat to try the Qwen-backed assistant. I
 take longer while Ollama loads the model. <http://localhost:3000/api/v1/health> checks the full chain
 (frontend proxy, API and database).
 
-**Optional:** load demonstration data with `uv run python -m app.seed` (from `apps/backend`), and
+**Optional:** load demonstration data with `uv run python -m app.seed` (from `apps/backend`; set
+`DEMO_PASSWORD` in `apps/backend/.env` first if you want to log in with the demonstration accounts),
+create a real account with `uv run python -m app.create_user --email … --role admin` (see
+[docs/authentication.md](docs/authentication.md)), and
 download the language model with
 `docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3:4b`.
 

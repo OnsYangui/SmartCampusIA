@@ -37,7 +37,12 @@ def counts(conn: Connection) -> dict[str, int]:
 
 
 def runtime_settings(environment: str, database_url: str) -> Settings:
-    return Settings(_env_file=None, environment=environment, database_url=database_url)
+    return Settings(
+        _env_file=None,
+        environment=environment,
+        database_url=database_url,
+        jwt_secret_key="x" * 32,  # mandatory outside development (SA-28)
+    )
 
 
 def seed_guard():
@@ -129,3 +134,34 @@ def test_demo_accounts_cannot_log_in(conn: Connection) -> None:
 
     assert hashes == [seed.DEMO_PASSWORD_HASH]
     assert not seed.DEMO_PASSWORD_HASH.startswith("$")  # never a usable PHC hash
+
+
+# SA-28 — demonstration accounts can log in once a demo password is configured
+def test_demo_accounts_cannot_log_in_until_a_password_is_set(conn: Connection) -> None:
+    from app.core.passwords import verify_password
+
+    seed_reference(conn)
+    seed_demo(conn)
+
+    hashes = conn.execute(
+        text("SELECT password_hash FROM users WHERE email LIKE '%@example.com'")
+    ).scalars()
+
+    assert not any(verify_password("n'importe-quoi", h) for h in hashes)
+
+
+def test_enable_demo_login_sets_one_working_password(conn: Connection) -> None:
+    from app.core.passwords import verify_password
+
+    seed_reference(conn)
+    seed_demo(conn)
+
+    updated = seed.enable_demo_login(conn, "Demo-Password-2026")
+
+    rows = conn.execute(text("SELECT email, password_hash FROM users")).all()
+    assert updated == len(rows) == len(seed.demo_user_ids())
+    assert all(verify_password("Demo-Password-2026", row.password_hash) for row in rows)
+    # Replaying with another password replaces the previous one.
+    seed.enable_demo_login(conn, "Autre-Password-2026")
+    rows = conn.execute(text("SELECT password_hash FROM users")).all()
+    assert not any(verify_password("Demo-Password-2026", row.password_hash) for row in rows)

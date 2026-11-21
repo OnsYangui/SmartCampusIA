@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { UserMenu } from "@/components/user-menu"
 
 const NAV = [
   { href: "/chat", label: "Chat" },
@@ -56,6 +57,7 @@ export default function HomePage() {
               </Button>
             ))}
             <ApiStatus />
+            <UserMenu />
           </nav>
         </div>
       </header>
