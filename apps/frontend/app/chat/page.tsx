@@ -3,12 +3,33 @@
 import type { FormEvent } from "react"
 import { useState } from "react"
 type Message = { role: "user" | "assistant"; content: string }
+const CONVERSATION_STORAGE_KEY = "smartcampus.conversation_id"
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const [input, setInput] = useState("")
   const [pending, setPending] = useState(false)
   const [error, setError] = useState("")
+
+  async function getConversationId(): Promise<string> {
+    let id = conversationId ?? window.sessionStorage.getItem(CONVERSATION_STORAGE_KEY)
+    if (id) {
+      const existing = await fetch(`/api/v1/sessions/${id}`)
+      if (existing.ok) {
+        setConversationId(id)
+        return id
+      }
+      window.sessionStorage.removeItem(CONVERSATION_STORAGE_KEY)
+    }
+
+    const created = await fetch("/api/v1/sessions", { method: "POST" })
+    if (!created.ok) throw new Error("Impossible d'ouvrir une session de conversation.")
+    const session: { id: string } = await created.json()
+    window.sessionStorage.setItem(CONVERSATION_STORAGE_KEY, session.id)
+    setConversationId(session.id)
+    return session.id
+  }
 
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -20,10 +41,11 @@ export default function ChatPage() {
     setError("")
     setPending(true)
     try {
+      const activeConversationId = await getConversationId()
       const response = await fetch("/api/v1/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, history: messages.slice(-10) }),
+        body: JSON.stringify({ conversation_id: activeConversationId, message }),
       })
       if (!response.ok) throw new Error("L'assistant est indisponible. Vérifiez qu'Ollama est lancé et que qwen3:4b est téléchargé.")
       const result: { message: string } = await response.json()
@@ -72,7 +94,7 @@ export default function ChatPage() {
               event.currentTarget.form?.requestSubmit()
             }
           }}
-          maxLength={4000}
+          maxLength={2000}
           rows={2}
           placeholder="Votre question…"
           className="min-h-12 flex-1 resize-y rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
