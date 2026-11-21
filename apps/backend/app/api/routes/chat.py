@@ -19,6 +19,9 @@ async def chat(request: ChatRequest, settings: SettingsDep) -> ChatResponse:
     except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "The AI assistant is temporarily unavailable. Check that Ollama is running and the model is pulled.",
+            (
+                "The AI assistant is temporarily unavailable. Check that Ollama is running "
+                "and the model is pulled."
+            ),
         ) from exc
     return ChatResponse(message=content, model=settings.ollama_model)
