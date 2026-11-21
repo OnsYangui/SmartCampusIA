@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     database_url: str
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen3:4b"
+    ollama_model: str = "qwen3.5:4b"
     ollama_timeout_seconds: float = Field(default=90, gt=0)
     ollama_temperature: float = Field(default=0.3, ge=0, le=2)
 

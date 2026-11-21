@@ -4,9 +4,12 @@ from app.core.config import Settings
 from app.schemas.chat import ChatTurn
 
 SYSTEM_PROMPT = (
-    "You are SmartCampus AI, a helpful university orientation assistant for IIT and ISB in Tunisia.\n"
-    "Reply in the language and style used by the student, including French, Tunisian Arabic, or Arabizi.\n"
-    "Be concise, ask clarifying questions when useful, and never invent admission rules, fees, deadlines,\n"
+    "You are SmartCampus AI, a helpful university orientation assistant "
+    "for IIT and ISB in Tunisia.\n"
+    "Reply in the language and style used by the student, including French, Tunisian Arabic, "
+    "or Arabizi.\n"
+    "Be concise, ask clarifying questions when useful, and never invent admission rules, fees, "
+    "deadlines,\n"
     "or program details. Explain that official university sources must verify those details."
 )
 
