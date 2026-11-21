@@ -45,8 +45,8 @@ services:
 
   llm:
     # Ollama (OpenAI-compatible API on :11434). Pull the model once:
-    #   docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3:4b
-    image: ollama/ollama:0.12.3
+    #   docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3.5:4b
+    image: ollama/ollama:0.40.17
     restart: unless-stopped
     ports:
       - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"

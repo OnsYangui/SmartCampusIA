@@ -84,10 +84,10 @@ docker compose -f infra/docker-compose.yml up -d
 Pull the configured Qwen model once (the Ollama volume keeps it across restarts):
 
 ```bash
-docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3:4b
+docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3.5:4b
 ```
 
-The backend calls Ollama at `http://localhost:11434` by default using `qwen3:4b`. Override
+The backend calls Ollama at `http://localhost:11434` by default using `qwen3.5:4b`. Override
 `OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT_SECONDS`, or `OLLAMA_TEMPERATURE` in
 `apps/backend/.env` if needed.
 
@@ -119,7 +119,7 @@ take longer while Ollama loads the model. <http://localhost:3000/api/v1/health> 
 create a real account with `uv run python -m app.create_user --email … --role admin` (see
 [docs/authentication.md](docs/authentication.md)), and
 download the language model with
-`docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3:4b`.
+`docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3.5:4b`.
 
 ## Testing
 
