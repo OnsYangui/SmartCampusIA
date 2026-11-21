@@ -13,7 +13,7 @@ The repository currently contains the **technical foundation**; the product feat
 | --- | --- |
 | FastAPI backend: health check, catalogue API: public reads of published, valid data (programs, specialties, subjects, fees, admission requirements, eligibility) and management routes reserved to academic managers and administrators | Conversation, orientation and pre-registration services |
 | Authentication and role-based access (SA-28): login, JWT in HttpOnly cookies, refresh, logout, CSRF protection, five roles | LangGraph agents with human validation |
-| Next.js frontend: home page, login page for every actor, role-protected placeholder pages (candidate area, dashboard, interviews) and a public chat placeholder | RAG over official IIT/ISB documents |
+| Next.js frontend: home page, login page for every actor, role-protected pages and public Qwen-backed chat | RAG over official IIT/ISB documents |
 | Same-origin proxy from the frontend to the API | Speech-to-text, LoRA language adaptation |
 | PostgreSQL + pgvector: 27-table data model, least-privilege roles, migrations | Production deployment |
 | Replayable demonstration data | |
@@ -81,6 +81,16 @@ role in `infra/.env` and in the backend URLs. See [docs/development.md](docs/dev
 docker compose -f infra/docker-compose.yml up -d
 ```
 
+Pull the configured Qwen model once (the Ollama volume keeps it across restarts):
+
+```bash
+docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3.5:4b
+```
+
+The backend calls Ollama at `http://localhost:11434` by default using `qwen3.5:4b`. Override
+`OLLAMA_BASE_URL`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT_SECONDS`, or `OLLAMA_TEMPERATURE` in
+`apps/backend/.env` if needed.
+
 **3. Prepare the database and start the backend** in a terminal:
 
 ```bash
@@ -100,7 +110,8 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000>. <http://localhost:3000/api/v1/health> checks the full chain
+Open <http://localhost:3000> and choose Chat to try the Qwen-backed assistant. Its first reply may
+take longer while Ollama loads the model. <http://localhost:3000/api/v1/health> checks the full chain
 (frontend proxy, API and database).
 
 **Optional:** load demonstration data with `uv run python -m app.seed` (from `apps/backend`; set
@@ -108,7 +119,7 @@ Open <http://localhost:3000>. <http://localhost:3000/api/v1/health> checks the f
 create a real account with `uv run python -m app.create_user --email … --role admin` (see
 [docs/authentication.md](docs/authentication.md)), and
 download the language model with
-`docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3:4b`.
+`docker compose -f infra/docker-compose.yml exec llm ollama pull qwen3.5:4b`.
 
 ## Testing
 

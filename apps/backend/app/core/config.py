@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     cors_origins: str = "http://localhost:3000"
     database_url: str
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen3.5:4b"
+    ollama_timeout_seconds: float = Field(default=90, gt=0)
+    ollama_temperature: float = Field(default=0.3, ge=0, le=2)
 
     # SA-25 / SA-26 : sessions visiteurs et mémoire temporaire de la conversation
     session_cookie_name: str = "sc_session"
