@@ -13,7 +13,7 @@ export default function ChatPage() {
   const [error, setError] = useState("")
 
   async function getConversationId(): Promise<string> {
-    let id = conversationId ?? window.sessionStorage.getItem(CONVERSATION_STORAGE_KEY)
+    const id = conversationId ?? window.sessionStorage.getItem(CONVERSATION_STORAGE_KEY)
     if (id) {
       const existing = await fetch(`/api/v1/sessions/${id}`)
       if (existing.ok) {
