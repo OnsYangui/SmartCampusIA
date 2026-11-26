@@ -25,7 +25,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 // Where each actor lands after signing in (SA-5 §3: what each role may use).
 export const HOME_BY_ROLE: Record<Role, string> = {
   candidate: "/candidat",
-  academic_manager: "/dashboard",
+  academic_manager: "/documents",
   interview_manager: "/entretiens",
   management: "/dashboard",
   admin: "/dashboard",
@@ -52,7 +52,11 @@ function readCsrfToken(): string {
 function send(path: string, init: RequestInit = {}): Promise<Response> {
   const method = (init.method ?? "GET").toUpperCase()
   const headers = new Headers(init.headers)
-  if (init.body && !headers.has("Content-Type")) {
+   if (
+    init.body &&
+    !(init.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json")
   }
   if (!SAFE_METHODS.has(method)) {
