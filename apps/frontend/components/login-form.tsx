@@ -4,15 +4,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { useAuth } from "@/components/auth-provider"
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { HOME_BY_ROLE, safeNext } from "@/lib/auth"
 
 const DEMO_ACCOUNTS: { label: string; email: string }[] = [
@@ -22,6 +13,9 @@ const DEMO_ACCOUNTS: { label: string; email: string }[] = [
   { label: "Direction", email: "direction@example.com" },
   { label: "Administrateur", email: "admin@example.com" },
 ]
+
+const FIELD =
+  "h-12 w-full rounded-[14px] border border-slate-300 bg-white pr-3.5 pl-11 text-[15px] outline-none transition focus:border-2 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/15 aria-invalid:border-red-500"
 
 export function LoginForm() {
   const { user, loading, signIn } = useAuth()
@@ -53,20 +47,30 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Connexion</CardTitle>
-        <CardDescription>
-          Candidats inscrits et équipes IIT / ISB.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="email" className="text-sm font-medium">
-              Adresse e-mail
-            </label>
-            <Input
+    <div
+      style={{ animationDelay: "150ms" }}
+      className="w-full rounded-3xl bg-white p-7 shadow-[0_30px_80px_rgba(0,0,0,0.45)] sm:p-[30px] motion-safe:animate-login-rise"
+    >
+      <form onSubmit={onSubmit} className="flex flex-col gap-[18px]" noValidate>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="email" className="text-sm font-semibold">
+            Adresse e-mail
+          </label>
+          <div className="relative">
+            <svg
+              className="absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-indigo-600"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="M3 7l9 6 9-6" />
+            </svg>
+            <input
               id="email"
               name="email"
               type="email"
@@ -75,13 +79,30 @@ export function LoginForm() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               aria-invalid={error ? true : undefined}
+              className={FIELD}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="password" className="text-sm font-medium">
-              Mot de passe
-            </label>
-            <Input
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="password" className="text-sm font-semibold">
+            Mot de passe
+          </label>
+          <div className="relative">
+            <svg
+              className="absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-slate-500"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="4" y="11" width="16" height="10" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg>
+            <input
               id="password"
               name="password"
               type="password"
@@ -90,39 +111,58 @@ export function LoginForm() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               aria-invalid={error ? true : undefined}
+              className={FIELD}
             />
           </div>
+        </div>
 
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-
-          <Button type="submit" disabled={pending || !email || !password}>
-            {pending ? "Connexion…" : "Se connecter"}
-          </Button>
-        </form>
-
-        {process.env.NODE_ENV === "development" && (
-          <div className="mt-6 border-t pt-4">
-            <div className="flex flex-wrap gap-2">
-              {DEMO_ACCOUNTS.map((account) => (
-                <Button
-                  key={account.email}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="rounded-full font-normal"
-                  onClick={() => setEmail(account.email)}
-                >
-                  {account.label}
-                </Button>
-              ))}
-            </div>
-          </div>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-800"
+          >
+            {error}
+          </p>
         )}
-      </CardContent>
-    </Card>
+
+        <button
+          type="submit"
+          disabled={pending || !email || !password}
+          className="relative h-[50px] overflow-hidden rounded-[14px] bg-indigo-600 text-[15px] font-semibold text-white shadow-[0_10px_24px_rgba(79,70,229,0.35)] transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 w-2/5 bg-linear-to-r from-transparent via-white/40 to-transparent motion-safe:animate-login-shine"
+          />
+          <span className="relative">
+            {pending ? "Connexion…" : "Se connecter"}
+          </span>
+        </button>
+      </form>
+
+      {process.env.NODE_ENV === "development" && (
+        <div className="mt-5 flex flex-col gap-2.5 border-t border-slate-200 pt-4">
+          <span className="text-[11px] font-semibold tracking-[1px] text-slate-500 uppercase">
+            Démo (développement uniquement)
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {DEMO_ACCOUNTS.map((account) => (
+              <button
+                key={account.email}
+                type="button"
+                onClick={() => setEmail(account.email)}
+                className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                  email === account.email
+                    ? "border-indigo-300 bg-indigo-50 font-semibold text-indigo-800"
+                    : "border-slate-300 bg-white hover:bg-slate-50"
+                }`}
+              >
+                {account.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

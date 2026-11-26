@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     message_max_chars: int = 2000  # taille maximale d'un message
     memory_window_messages: int = 12  # nombre de messages récents donnés à l'agent
 
+    # SA-41 / SA-42 : documents officiels du corpus RAG (fichiers conservés sur disque)
+    documents_dir: Path = BACKEND_DIR / "storage" / "documents"
+    document_max_bytes: int = Field(default=20 * 1024 * 1024, gt=0)  # 20 Mo par fichier
+    embedding_model: str = "bge-m3"  # modèle noté dans la synchronisation (SA-14)
+
     # Authentication (SA-28, SA-5): short-lived JWT in an HttpOnly cookie plus a refresh token.
     # Mandatory outside development; in development a random per-process secret is used when
     # the variable is missing (sessions then end whenever the API restarts).

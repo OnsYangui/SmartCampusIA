@@ -45,3 +45,5 @@ tmp/
 
 # Python packaging
 *.egg-info/
+# Fichiers des documents officiels (SA-42) : jamais versionnés
+apps/backend/storage/
